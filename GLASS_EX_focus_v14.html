@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Glass Effects — Focus v14 (fixed Neon rim, working Bevel/Double, more sliders on Ringed/Scratches, frost tint)</title>
+<style>
+:root{
+  --font-sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --color-text-primary:#EAEBF0; --color-text-secondary:#9096C0;
+  --color-panel-bg: rgba(22,24,43,0.12); --color-panel-border: rgba(128,138,189,0.20);
+  --card-radius:18px;
+}
+html,body{height:100%;margin:0;background:#0b0b12;color:var(--color-text-primary);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden}
+/* Backdrop reminder: needs translucency to take effect per MDN */
+#starfield{position:fixed;inset:0;z-index:0;pointer-events:none;background:
+  radial-gradient(660px 660px at 20% -20%, rgba(52,11,113,0.05) 1%, rgba(150,0,120,0.05) 42%, rgba(115,48,250,0.10) 62%, rgba(187,0,148,0.05) 82%, rgba(255,255,255,0) 100%),
+  radial-gradient(460px 460px at 90% 10%, rgba(52,11,113,0.35) 1%, rgba(20,48,50,0.25) 32%, rgba(50,0,20,0.10) 62%, rgba(87,0,48,0.10) 82%, rgba(255,255,255,0) 100%),
+  radial-gradient(ellipse at 50% 100%, #1B2735 0%, #090A0F 100%);
+  background-repeat:no-repeat}
+#stars,#stars1{position:absolute;left:0;top:0}
+#stars1{width:1px;height:2px;background:transparent;border-radius:20px;box-shadow:1528px 425px #FF4089,1965px 1848px #F08cd1,466px 588px #008cd1,1441px 1361px #008cd1,1403px 1363px #FF00FF,1010px 54px #008cd1,904px 1539px #6300FF,929px 1400px #7300ff,1370px 1286px #008cd1,612px 1109px #9900FF,1899px 1371px #FF4089,215px 873px #E86439;animation:animStar 450s linear infinite}
+#stars{width:1px;height:1px;background:transparent;border-radius:20px;box-shadow:1528px 425px #FFF,1965px 1848px #FFF,466px 588px #FFF,1441px 1361px #FFF,395px 1296px #FFF,1603px 1631px #FFF,1403px 1363px #FFF,1010px 54px #FFF,904px 1539px #FFF,929px 1400px #FFF,1370px 1286px #FFF,612px 1109px #FFF;animation:animStar 300s linear infinite}
+@keyframes animStar{from{transform:translateY(0)}to{transform:translateY(-2000px)}}
+#noise-overlay{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.25;mix-blend-mode:overlay;background-image:radial-gradient(circle at 50% 50%, rgba(255,255,255,.02) 0 1px, transparent 1px 100%),radial-gradient(circle at 10% 20%, rgba(255,255,255,.02) 0 1px, transparent 1px 100%)}
+/* Layout */
+header{position:sticky;top:0;z-index:2;padding:10px 14px;text-align:center;background:linear-gradient(180deg, rgba(11,11,18,.28) 10%, transparent 100%);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid rgba(128,138,189,.2)}
+h1{margin:0;font-size:1.05rem;letter-spacing:.4px}
+.container{position:relative;z-index:1;max-width:1440px;margin:18px auto 80px;padding:0 14px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(320px,1fr));gap:18px}
+@media (max-width:1100px){.grid{grid-template-columns:repeat(2,minmax(300px,1fr))}}
+@media (max-width:700px){.grid{grid-template-columns:1fr}}
+/* Card */
+.card{position:relative;overflow:hidden;min-height:360px;padding:14px;border-radius:var(--card-radius);border:1px solid rgba(255,255,255,.18);background:rgba(22,24,43,.10);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 8px 28px rgba(0,0,0,var(--outerA,.22));display:flex;flex-direction:column;gap:8px}
+.title{font-weight:700;font-size:1rem;letter-spacing:.35px}
+.meta{font-size:.86rem;color:var(--color-text-secondary)}
+.pill{align-self:flex-start;display:inline-block;padding:2px 8px;border-radius:9999px;font-size:.72rem;color:#0b0b12;background:#c9d1ff;font-weight:700;letter-spacing:.2px}
+.controls{margin-top:auto;padding-top:8px;border-top:1px dashed rgba(255,255,255,.12);display:grid;gap:6px}
+.control{display:grid;grid-template-columns: 1fr 1fr 74px;align-items:center;gap:6px}
+.control label{font-size:.74rem;color:var(--color-text-secondary)}
+.control code{font-size:.70rem;opacity:.9}
+.control input[type=range]{width:100%}
+.control output{text-align:right;font-variant-numeric:tabular-nums;font-size:.78rem;color:#d8dbff}
+.actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+button.copy{appearance:none;-webkit-appearance:none;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#e7e9ff;padding:6px 10px;border-radius:10px;font-size:.78rem;cursor:pointer}
+button.copy:hover{background:rgba(255,255,255,.12)}
+.decls{margin-top:8px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.10);border-radius:12px;padding:10px 12px;overflow:auto;max-height:260px;font-size:.76rem}
+.decls pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#dfe3ff}
+/* Range input styling */
+input[type=range]{-webkit-appearance:none;appearance:none;height:22px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:4px;background:rgba(255,255,255,.18);border-radius:9999px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;margin-top:-6px;width:16px;height:16px;border-radius:50%;background:#e7e9ff;border:1px solid rgba(0,0,0,.3)}
+input[type=range]::-moz-range-track{height:4px;background:rgba(255,255,255,.18);border-radius:9999px}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#e7e9ff;border:1px solid rgba(0,0,0,.3)}
+
+/* ---- Glass styles (improved) ---- */
+/* SOFT */
+.glass-soft{
+  background-color:rgba(13,14,35,var(--soft-bgA,0.10));
+  -webkit-backdrop-filter:blur(var(--soft-blur,6px)) saturate(var(--soft-sat,110%));
+  backdrop-filter:blur(var(--soft-blur,6px)) saturate(var(--soft-sat,110%));
+}
+/* HEAVY FROST with optional white frost tint */
+.glass-heavy{
+  background-color:rgba(13,14,35,var(--heavy-bgA,0.22));
+  background-image: linear-gradient(rgba(255,255,255,var(--heavy-frost,0.00)), rgba(255,255,255,var(--heavy-frost,0.00)));
+  background-blend-mode: screen;
+  -webkit-backdrop-filter:blur(var(--heavy-blur,18px)) saturate(var(--heavy-sat,130%));
+  backdrop-filter:blur(var(--heavy-blur,18px)) saturate(var(--heavy-sat,130%));
+}
+/* DIM/BRIGHT/TINT */
+.glass-dim{background-color:rgba(13,14,35,var(--dim-bgA,0.26));-webkit-backdrop-filter:blur(var(--dim-blur,14px)) brightness(var(--dim-bright,0.90)) saturate(var(--dim-sat,115%));backdrop-filter:blur(var(--dim-blur,14px)) brightness(var(--dim-bright,0.90)) saturate(var(--dim-sat,115%))}
+.glass-bright{background-color:rgba(13,14,35,var(--bright-bgA,0.12));-webkit-backdrop-filter:blur(var(--bright-blur,12px)) brightness(var(--bright-bright,1.08)) saturate(var(--bright-sat,125%));backdrop-filter:blur(var(--bright-blur,12px)) brightness(var(--bright-bright,1.08)) saturate(var(--bright-sat,125%))}
+.glass-tint-purple{background-color:rgba(115,0,255,var(--tint-alpha,0.18));-webkit-backdrop-filter:blur(var(--tint-blur,12px)) saturate(var(--tint-sat,120%));backdrop-filter:blur(var(--tint-blur,12px)) saturate(var(--tint-sat,120%))}
+/* GLOSS */
+.glass-glossy::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg, rgba(255,255,255,var(--gloss-alpha,0.18)), rgba(255,255,255,0) 35%)}
+/* TEXTURE */
+.glass-texture{background-image:repeating-linear-gradient(0deg, rgba(255,255,255,var(--texture-alpha,0.06)) 0 var(--texture-line,1px), transparent var(--texture-line,1px) var(--texture-gap,3px)),repeating-linear-gradient(90deg, rgba(255,255,255,var(--texture-alpha2,0.05)) 0 var(--texture-line,1px), transparent var(--texture-line,1px) var(--texture-gap,3px));-webkit-backdrop-filter:blur(var(--texture-blur,12px)) saturate(var(--texture-sat,120%));backdrop-filter:blur(var(--texture-blur,12px)) saturate(var(--texture-sat,120%))}
+
+/* NEON GRADIENT BORDER — border-only rim + glow (no fill gradient) */
+.glass-neon{
+  position:relative;
+  border:1px solid transparent;
+  background:
+    linear-gradient(rgba(13,14,35,var(--neon-bgA,0.16)), rgba(13,14,35,var(--neon-bgA,0.16))) padding-box,
+    linear-gradient(var(--neon-angle,135deg), var(--neon-colA,#8A2BE2), var(--neon-colB,#00D4FF)) border-box;
+  -webkit-backdrop-filter:blur(var(--neon-blur,12px)) saturate(var(--neon-sat,120%));
+  backdrop-filter:blur(var(--neon-blur,12px)) saturate(var(--neon-sat,120%));
+}
+.glass-neon::after{
+  content:""; position:absolute; inset:0; border-radius:inherit; padding:var(--neon-glowInset,1px);
+  background: linear-gradient(var(--neon-angle,135deg), var(--neon-colA,#8A2BE2), var(--neon-colB,#00D4FF));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; /* Safari */
+          mask-composite: exclude; /* Others */
+  filter: drop-shadow(0 0 var(--neon-glowPx,10px) rgba(138,43,226,var(--neon-a,0.55)))
+          drop-shadow(0 0 var(--neon-glowPx,10px) rgba(0,212,255,var(--neon-b,0.55)));
+  pointer-events:none;
+}
+
+/* INSET BEVEL (4 sides) — keep inset shadows + independent outer shadow via var */
+.glass-bevel{
+  -webkit-backdrop-filter:blur(var(--bevel-blur,12px)) saturate(var(--bevel-sat,118%));
+  backdrop-filter:blur(var(--bevel-blur,12px)) saturate(var(--bevel-sat,118%));
+  box-shadow:
+    inset 0 var(--bevel-px,2px) 0 rgba(255,255,255,var(--bevel-lightA,0.35)),
+    inset 0 calc(-1 * var(--bevel-px,2px)) 0 rgba(0,0,0,var(--bevel-darkA,0.30)),
+    inset var(--bevel-px,2px) 0 0 rgba(0,0,0,var(--bevel-darkA,0.30)),
+    inset calc(-1 * var(--bevel-px,2px)) 0 0 rgba(255,255,255,var(--bevel-lightA,0.35)),
+    0 8px 24px rgba(0,0,0,var(--outerA,.22));
+}
+
+/* RINGED — add BG alpha + blur + center controls */
+.glass-ringed{
+  position:relative;
+  background-color: rgba(13,14,35, var(--ringed-bgA,0.16));
+  -webkit-backdrop-filter: blur(var(--ringed-blur,12px)) saturate(var(--ringed-sat,120%));
+  backdrop-filter: blur(var(--ringed-blur,12px)) saturate(var(--ringed-sat,120%));
+}
+.glass-ringed::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:var(--ringed-alpha,0.35);
+  background-image:repeating-radial-gradient(circle at var(--ringed-x,40%) var(--ringed-y,40%),
+    rgba(255,255,255,0.14) 0 var(--ringed-dot,2px), transparent var(--ringed-dot,2px) var(--ringed-gap,18px));
+  mix-blend-mode:screen;
+}
+
+/* MICRO-SCRATCHES — add BG alpha + blur controls */
+.glass-scratched{
+  position:relative;
+  background-color: rgba(13,14,35, var(--scratch-bgA,0.14));
+  -webkit-backdrop-filter: blur(var(--scratch-blur,10px)) saturate(var(--scratch-sat,115%));
+  backdrop-filter: blur(var(--scratch-blur,10px)) saturate(var(--scratch-sat,115%));
+}
+.glass-scratched::after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:var(--scratch-alpha,0.25);
+  background-image:repeating-linear-gradient(var(--scratch-angle,115deg),
+    rgba(255,255,255,0.06) 0 var(--scratch-line,1px), transparent var(--scratch-line,1px) var(--scratch-gap,7px));
+}
+
+/* DOUBLE GLASS — two visible rims + independent outer shadow via var */
+.glass-double{
+  -webkit-backdrop-filter:blur(var(--double-blur,12px)) saturate(var(--double-sat,120%));
+  backdrop-filter:blur(var(--double-blur,12px)) saturate(var(--double-sat,120%));
+  background-color: rgba(13,14,35, var(--double-bgA,0.14));
+  box-shadow:
+    inset 0 0 0 var(--double-rim1Px,2px) rgba(255,255,255,var(--double-rim1,0.45)),
+    inset 0 0 0 var(--double-rimPx,12px) rgba(255,255,255,var(--double-rim2,0.15)),
+    0 10px 26px rgba(0,0,0,var(--outerA,.22));
+}
+
+/* DUOTONE PRISM EDGE — border-only gradient with overlay bg */
+.glass-duoprism{
+  position:relative;border:1px solid transparent;
+  background:
+    linear-gradient(rgba(13,14,35,var(--duo-bgA,0.14)), rgba(13,14,35,var(--duo-bgA,0.14))) padding-box,
+    linear-gradient(90deg, rgba(0,212,255,var(--prism-a,0.55)), rgba(138,43,226,var(--prism-b,0.55))) border-box;
+  background-blend-mode:screen;
+  -webkit-backdrop-filter:blur(var(--duo-blur,12px)) saturate(var(--duo-sat,125%));
+  backdrop-filter:blur(var(--duo-blur,12px)) saturate(var(--duo-sat,125%));
+}
+
+/* ACRYLIC & PAPER */
+.glass-acrylic{background-color:rgba(20,28,58,var(--acrylic-bgA,0.28));-webkit-backdrop-filter:saturate(var(--acrylic-sat,180%)) blur(var(--acrylic-blur,20px));backdrop-filter:saturate(var(--acrylic-sat,180%)) blur(var(--acrylic-blur,20px));background-image:radial-gradient(rgba(255,255,255,var(--acrylic-noiseA,0.035)) 1px, transparent 1px);background-size:3px 3px;border-color:rgba(255,255,255,0.16)}
+.glass-paper{background-color:rgba(13,14,35,var(--paper-bgA,0.16));background-image:radial-gradient(rgba(255,255,255,var(--paper-noiseA,0.06)) 1px, transparent 1px);background-size:var(--paper-size,2px) var(--paper-size,2px);-webkit-backdrop-filter:blur(var(--paper-blur,10px)) saturate(var(--paper-sat,115%));backdrop-filter:blur(var(--paper-blur,10px)) saturate(var(--paper-sat,115%))}
+</style>
+</head>
+<body>
+<div id="starfield"><div id="stars"></div><div id="stars1"></div></div>
+<div id="noise-overlay"></div>
+<header><h1>Glass Effects — Focus v14</h1></header>
+<div class="container"><div class="grid" id="grid"></div></div>
+
+<script>
+/* ---------- Utils ---------- */
+function getVar(card, name, fallback){ 
+  const v = (card.style.getPropertyValue(name) || getComputedStyle(card).getPropertyValue(name) || '').trim();
+  return v || (fallback ?? '');
+}
+function emit(list, s){ list.push(s); }
+function block(list){ return list.join('\n'); }
+const NO_BORDER = new Set(['glass-neon','glass-duoprism']); 
+
+function addFrame(card, out){
+  const cls = Array.from(card.classList).find(c => c.startsWith('glass-')) || '';
+  const cs  = getComputedStyle(card);
+  const bdw = cs.borderWidth;
+  const bdc = cs.borderColor;
+  const br  = cs.borderRadius;
+  const bs  = cs.boxShadow;
+  emit(out, '');
+  emit(out, '/* Frame */');
+  if (!NO_BORDER.has(cls)) emit(out, `border: ${bdw} solid ${bdc};`);
+  emit(out, `border-radius: ${br};`);
+  emit(out, `box-shadow: ${bs};`);
+}
+
+/* ---------- Copy builders (mirror slider state) ---------- */
+const builders = {
+  'glass-soft': (card)=>{
+    const bgA = getVar(card,'--soft-bgA','0.10');
+    const blur= getVar(card,'--soft-blur','6px');
+    const sat = getVar(card,'--soft-sat','110%');
+    const out = [];
+    emit(out, `background-color: rgba(13, 14, 35, ${bgA});`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-heavy': (card)=>{
+    const bgA = getVar(card,'--heavy-bgA','0.22');
+    const blur= getVar(card,'--heavy-blur','18px');
+    const sat = getVar(card,'--heavy-sat','130%');
+    const frost = getVar(card,'--heavy-frost','0.00');
+    const out = [];
+    emit(out, `background-color: rgba(13, 14, 35, ${bgA});`);
+    emit(out, `background-image: linear-gradient(rgba(255,255,255, ${frost}), rgba(255,255,255, ${frost}));`);
+    emit(out, `background-blend-mode: screen;`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-dim': (card)=>{
+    const bgA = getVar(card,'--dim-bgA','0.26');
+    const blur= getVar(card,'--dim-blur','14px');
+    const br  = getVar(card,'--dim-bright','0.90');
+    const sat = getVar(card,'--dim-sat','115%');
+    const out = [];
+    emit(out, `background-color: rgba(13, 14, 35, ${bgA});`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) brightness(${br}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) brightness(${br}) saturate(${sat});`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-bright': (card)=>{
+    const bgA = getVar(card,'--bright-bgA','0.12');
+    const blur= getVar(card,'--bright-blur','12px');
+    const br  = getVar(card,'--bright-bright','1.08');
+    const sat = getVar(card,'--bright-sat','125%');
+    const out = [];
+    emit(out, `background-color: rgba(13, 14, 35, ${bgA});`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) brightness(${br}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) brightness(${br}) saturate(${sat});`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-tint-purple': (card)=>{
+    const a   = getVar(card,'--tint-alpha','0.18');
+    const blur= getVar(card,'--tint-blur','12px');
+    const sat = getVar(card,'--tint-sat','120%');
+    const out = [];
+    emit(out, `background-color: rgba(115, 0, 255, ${a});`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-glossy': (card)=>{
+    const a = getVar(card,'--gloss-alpha','0.18');
+    const out = [];
+    emit(out, `/* ::before */`);
+    emit(out, `content: ""; position: absolute; inset: 0; pointer-events: none;`);
+    emit(out, `background: linear-gradient(180deg, rgba(255,255,255, ${a}), rgba(255,255,255,0) 35%);`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-texture': (card)=>{
+    const a1  = getVar(card,'--texture-alpha','0.06');
+    const a2  = getVar(card,'--texture-alpha2','0.05');
+    const ln  = getVar(card,'--texture-line','1px');
+    const gp  = getVar(card,'--texture-gap','3px');
+    const blur= getVar(card,'--texture-blur','12px');
+    const sat = getVar(card,'--texture-sat','120%');
+    const out = [];
+    emit(out, `background-image:`);
+    emit(out, `  repeating-linear-gradient(0deg,  rgba(255,255,255, ${a1}) 0 ${ln}, transparent ${ln} ${gp}),`);
+    emit(out, `  repeating-linear-gradient(90deg, rgba(255,255,255, ${a2}) 0 ${ln}, transparent ${ln} ${gp});`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-neon': (card)=>{
+    const ang = getVar(card,'--neon-angle','135deg');
+    const glowPx = getVar(card,'--neon-glowPx','10px');
+    const aA  = getVar(card,'--neon-a','0.55');
+    const aB  = getVar(card,'--neon-b','0.55');
+    const bgA = getVar(card,'--neon-bgA','0.16');
+    const blur= getVar(card,'--neon-blur','12px');
+    const sat = getVar(card,'--neon-sat','120%');
+    const out = [];
+    emit(out, `border: 1px solid transparent;`);
+    emit(out, `background:`);
+    emit(out, `  linear-gradient(rgba(13,14,35, ${bgA}), rgba(13,14,35, ${bgA})) padding-box,`);
+    emit(out, `  linear-gradient(${ang}, var(--neon-colA,#8A2BE2), var(--neon-colB,#00D4FF)) border-box;`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `/* ::after for glow rim */`);
+    emit(out, `content: ""; position: absolute; inset: 0; border-radius: inherit; padding: var(--neon-glowInset,1px);`);
+    emit(out, `background: linear-gradient(${ang}, var(--neon-colA,#8A2BE2), var(--neon-colB,#00D4FF));`);
+    emit(out, `-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);`);
+    emit(out, `-webkit-mask-composite: xor; mask-composite: exclude;`);
+    emit(out, `filter: drop-shadow(0 0 ${glowPx} rgba(138,43,226, ${aA})) drop-shadow(0 0 ${glowPx} rgba(0,212,255, ${aB}));`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-bevel': (card)=>{
+    const px  = getVar(card,'--bevel-px','2px');
+    const la  = getVar(card,'--bevel-lightA','0.35');
+    const da  = getVar(card,'--bevel-darkA','0.30');
+    const blur= getVar(card,'--bevel-blur','12px');
+    const sat = getVar(card,'--bevel-sat','118%');
+    const out = [];
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `box-shadow:`);
+    emit(out, `  inset 0 ${px} 0 rgba(255,255,255, ${la}),`);
+    emit(out, `  inset 0 calc(-1 * ${px}) 0 rgba(0,0,0, ${da}),`);
+    emit(out, `  inset ${px} 0 0 rgba(0,0,0, ${da}),`);
+    emit(out, `  inset calc(-1 * ${px}) 0 0 rgba(255,255,255, ${la}),`);
+    emit(out, `  0 8px 24px rgba(0,0,0, var(--outerA, .22));`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-ringed': (card)=>{
+    const a   = getVar(card,'--ringed-alpha','0.35');
+    const dot = getVar(card,'--ringed-dot','2px');
+    const gap = getVar(card,'--ringed-gap','18px');
+    const x   = getVar(card,'--ringed-x','40%');
+    const y   = getVar(card,'--ringed-y','40%');
+    const bga = getVar(card,'--ringed-bgA','0.16');
+    const blur= getVar(card,'--ringed-blur','12px');
+    const sat = getVar(card,'--ringed-sat','120%');
+    const out = [];
+    emit(out, `background-color: rgba(13, 14, 35, ${bga});`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `/* ::after */`);
+    emit(out, `content: ""; position: absolute; inset: 0; pointer-events: none;`);
+    emit(out, `opacity: ${a};`);
+    emit(out, `background-image: repeating-radial-gradient(circle at ${x} ${y}, rgba(255,255,255,0.14) 0 ${dot}, transparent ${dot} ${gap});`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-scratched': (card)=>{
+    const a   = getVar(card,'--scratch-alpha','0.25');
+    const ang = getVar(card,'--scratch-angle','115deg');
+    const ln  = getVar(card,'--scratch-line','1px');
+    const gp  = getVar(card,'--scratch-gap','7px');
+    const bga = getVar(card,'--scratch-bgA','0.14');
+    const blur= getVar(card,'--scratch-blur','10px');
+    const sat = getVar(card,'--scratch-sat','115%');
+    const out = [];
+    emit(out, `background-color: rgba(13, 14, 35, ${bga});`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `/* ::after */`);
+    emit(out, `content: ""; position: absolute; inset: 0; pointer-events: none;`);
+    emit(out, `opacity: ${a};`);
+    emit(out, `background-image: repeating-linear-gradient(${ang}, rgba(255,255,255,0.06) 0 ${ln}, transparent ${ln} ${gp});`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-double': (card)=>{
+    const r1 = getVar(card,'--double-rim1','0.45');
+    const r2 = getVar(card,'--double-rim2','0.15');
+    const p1 = getVar(card,'--double-rim1Px','2px');
+    const p2 = getVar(card,'--double-rimPx','12px');
+    const blur= getVar(card,'--double-blur','12px');
+    const sat = getVar(card,'--double-sat','120%');
+    const bga = getVar(card,'--double-bgA','0.14');
+    const out = [];
+    emit(out, `background-color: rgba(13, 14, 35, ${bga});`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `box-shadow: inset 0 0 0 ${p1} rgba(255,255,255, ${r1}), inset 0 0 0 ${p2} rgba(255,255,255, ${r2}), 0 10px 26px rgba(0,0,0, var(--outerA, .22));`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-duoprism': (card)=>{
+    const bga = getVar(card,'--duo-bgA','0.14');
+    const a   = getVar(card,'--prism-a','0.55');
+    const b   = getVar(card,'--prism-b','0.55');
+    const blur= getVar(card,'--duo-blur','12px');
+    const sat = getVar(card,'--duo-sat','125%');
+    const out = [];
+    emit(out, `border: 1px solid transparent;`);
+    emit(out, `background:`);
+    emit(out, `  linear-gradient(rgba(13,14,35, ${bga}), rgba(13,14,35, ${bga})) padding-box,`);
+    emit(out, `  linear-gradient(90deg, rgba(0,212,255, ${a}), rgba(138,43,226, ${b})) border-box;`);
+    emit(out, `background-blend-mode: screen;`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-acrylic': (card)=>{
+    const bgA = getVar(card,'--acrylic-bgA','0.28');
+    const sat = getVar(card,'--acrylic-sat','180%');
+    const blur= getVar(card,'--acrylic-blur','20px');
+    const nA  = getVar(card,'--acrylic-noiseA','0.035');
+    const out = [];
+    emit(out, `background-color: rgba(20, 28, 58, ${bgA});`);
+    emit(out, `-webkit-backdrop-filter: saturate(${sat}) blur(${blur});`);
+    emit(out, `backdrop-filter: saturate(${sat}) blur(${blur});`);
+    emit(out, `background-image: radial-gradient(rgba(255,255,255, ${nA}) 1px, transparent 1px);`);
+    emit(out, `background-size: 3px 3px;`);
+    addFrame(card, out); return block(out);
+  },
+
+  'glass-paper': (card)=>{
+    const bgA = getVar(card,'--paper-bgA','0.16');
+    const nA  = getVar(card,'--paper-noiseA','0.06');
+    const size= getVar(card,'--paper-size','2px');
+    const blur= getVar(card,'--paper-blur','10px');
+    const sat = getVar(card,'--paper-sat','115%');
+    const out = [];
+    emit(out, `background-color: rgba(13, 14, 35, ${bgA});`);
+    emit(out, `background-image: radial-gradient(rgba(255,255,255, ${nA}) 1px, transparent 1px);`);
+    emit(out, `background-size: ${size} ${size};`);
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
+    addFrame(card, out); return block(out);
+  }
+};
+
+/* ---------- Cards list ---------- */
+const CARDS = [
+  {cls:'glass-soft', pill:'Soft', title:'Soft Glass', meta:'Key: blur + saturate + base α',
+   style:{'--soft-blur':'6px','--soft-sat':'110%','--soft-bgA':'0.10'},
+   controls:[
+     {label:'Blur', code:'--soft-blur', varName:'--soft-blur', unit:'px', min:0, max:40, step:1, value:6},
+     {label:'Saturate', code:'--soft-sat', varName:'--soft-sat', unit:'%', min:80, max:220, step:1, value:110},
+     {label:'Base α', code:'--soft-bgA', varName:'--soft-bgA', min:0, max:0.40, step:0.01, value:0.10},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
+   ]},
+
+  {cls:'glass-heavy', pill:'Heavy', title:'Heavy Frost', meta:'Key: strong blur + sat; add white frost',
+   style:{'--heavy-blur':'18px','--heavy-sat':'130%','--heavy-bgA':'0.22','--heavy-frost':'0.08'},
+   controls:[
+     {label:'Blur', code:'--heavy-blur', varName:'--heavy-blur', unit:'px', min:6, max:40, step:1, value:18},
+     {label:'Saturate', code:'--heavy-sat', varName:'--heavy-sat', unit:'%', min:100, max:240, step:1, value:130},
+     {label:'Base α', code:'--heavy-bgA', varName:'--heavy-bgA', min:0.10, max:0.50, step:0.01, value:0.22},
+     {label:'Frost (white) α', code:'--heavy-frost', varName:'--heavy-frost', min:0, max:0.40, step:0.01, value:0.08},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.50, step:0.01, value:0.22},
+   ]},
+
+  {cls:'glass-dim', pill:'Dim', title:'Dimmed Glass', meta:'Key: blur + brightness↓',
+   style:{'--dim-blur':'14px','--dim-bright':'0.90','--dim-sat':'115%','--dim-bgA':'0.26'},
+   controls:[
+     {label:'Blur', code:'--dim-blur', varName:'--dim-blur', unit:'px', min:0, max:30, step:1, value:14},
+     {label:'Brightness', code:'--dim-bright', varName:'--dim-bright', min:0.60, max:1.20, step:0.01, value:0.90},
+     {label:'Base α', code:'--dim-bgA', varName:'--dim-bgA', min:0, max:0.50, step:0.01, value:0.26},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
+   ]},
+
+  {cls:'glass-bright', pill:'Bright', title:'Bright Glass', meta:'Key: blur + brightness↑',
+   style:{'--bright-blur':'12px','--bright-bright':'1.08','--bright-sat':'125%','--bright-bgA':'0.12'},
+   controls:[
+     {label:'Blur', code:'--bright-blur', varName:'--bright-blur', unit:'px', min:0, max:30, step:1, value:12},
+     {label:'Brightness', code:'--bright-bright', varName:'--bright-bright', min:1.0, max:1.6, step:0.01, value:1.08},
+     {label:'Base α', code:'--bright-bgA', varName:'--bright-bgA', min:0, max:0.30, step:0.01, value:0.12},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
+   ]},
+
+  {cls:'glass-tint-purple', pill:'Tint', title:'Tinted (Purple)', meta:'Key: tinted base + blur',
+   style:{'--tint-blur':'12px','--tint-sat':'120%','--tint-alpha':'0.18'},
+   controls:[
+     {label:'Tint α', code:'--tint-alpha', varName:'--tint-alpha', min:0, max:0.60, step:0.01, value:0.18},
+     {label:'Blur', code:'--tint-blur', varName:'--tint-blur', unit:'px', min:0, max:24, step:1, value:12},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
+   ]},
+
+  {cls:'glass-glossy', pill:'Gloss', title:'Glossy Highlight', meta:'Key: top sheen α',
+   style:{'--gloss-alpha':'0.18'},
+   controls:[
+     {label:'Sheen α', code:'--gloss-alpha', varName:'--gloss-alpha', min:0, max:0.6, step:0.01, value:0.18},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
+   ]},
+
+  {cls:'glass-texture', pill:'Texture', title:'Crosshatch Texture', meta:'Key: line α + spacing',
+   style:{'--texture-alpha':'0.06','--texture-alpha2':'0.05','--texture-line':'1px','--texture-gap':'3px','--texture-blur':'12px','--texture-sat':'120%'},
+   controls:[
+     {label:'Lines α', code:'--texture-alpha', varName:'--texture-alpha', min:0, max:0.2, step:0.005, value:0.06},
+     {label:'Line px', code:'--texture-line', varName:'--texture-line', unit:'px', min:1, max:4, step:1, value:1},
+     {label:'Gap px', code:'--texture-gap', varName:'--texture-gap', unit:'px', min:2, max:10, step:1, value:3},
+     {label:'Blur', code:'--texture-blur', varName:'--texture-blur', unit:'px', min:0, max:24, step:1, value:12},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
+   ]},
+
+  {cls:'glass-neon', pill:'Neon', title:'Neon Gradient Border', meta:'Key: angle + glow px + glow α (rim)',
+   style:{'--neon-angle':'135deg','--neon-glowPx':'12px','--neon-a':'0.55','--neon-b':'0.55','--neon-bgA':'0.16','--neon-blur':'12px','--neon-sat':'120%'},
+   controls:[
+     {label:'Angle', code:'--neon-angle', varName:'--neon-angle', unit:'deg', min:0, max:360, step:1, value:135},
+     {label:'Glow px', code:'--neon-glowPx', varName:'--neon-glowPx', unit:'px', min:0, max:40, step:1, value:12},
+     {label:'Glow A (A)', code:'--neon-a', varName:'--neon-a', min:0, max:1, step:0.01, value:0.55},
+     {label:'Glow B (B)', code:'--neon-b', varName:'--neon-b', min:0, max:1, step:0.01, value:0.55},
+     {label:'Blur', code:'--neon-blur', varName:'--neon-blur', unit:'px', min:0, max:24, step:1, value:12},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+   ]},
+
+  {cls:'glass-bevel', pill:'Bevel', title:'Inset Bevel (4-side)', meta:'Key: bevel px + light/dark α',
+   style:{'--bevel-px':'2px','--bevel-lightA':'0.35','--bevel-darkA':'0.30','--bevel-blur':'12px','--bevel-sat':'118%','--outerA':'0.22'},
+   controls:[
+     {label:'Bevel px', code:'--bevel-px', varName:'--bevel-px', unit:'px', min:0, max:6, step:1, value:2},
+     {label:'Light α', code:'--bevel-lightA', varName:'--bevel-lightA', min:0, max:0.8, step:0.01, value:0.35},
+     {label:'Dark α', code:'--bevel-darkA', varName:'--bevel-darkA', min:0, max:0.8, step:0.01, value:0.30},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.50, step:0.01, value:0.22},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+   ]},
+
+  {cls:'glass-ringed', pill:'Rings', title:'Ringed Glass', meta:'Key: dot/gap px + center x/y + blur/bg',
+   style:{'--ringed-alpha':'0.35','--ringed-dot':'2px','--ringed-gap':'18px','--ringed-x':'40%','--ringed-y':'40%','--ringed-bgA':'0.16','--ringed-blur':'12px','--ringed-sat':'120%'},
+   controls:[
+     {label:'Rings α', code:'--ringed-alpha', varName:'--ringed-alpha', min:0, max:0.8, step:0.01, value:0.35},
+     {label:'Dot px', code:'--ringed-dot', varName:'--ringed-dot', unit:'px', min:1, max:6, step:1, value:2},
+     {label:'Gap px', code:'--ringed-gap', varName:'--ringed-gap', unit:'px', min:8, max:32, step:1, value:18},
+     {label:'Center X %', code:'--ringed-x', varName:'--ringed-x', unit:'%', min:0, max:100, step:1, value:40},
+     {label:'Center Y %', code:'--ringed-y', varName:'--ringed-y', unit:'%', min:0, max:100, step:1, value:40},
+     {label:'Blur', code:'--ringed-blur', varName:'--ringed-blur', unit:'px', min:0, max:24, step:1, value:12},
+     {label:'Base α', code:'--ringed-bgA', varName:'--ringed-bgA', min:0, max:0.40, step:0.01, value:0.16},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
+   ]},
+
+  {cls:'glass-scratched', pill:'Scratches', title:'Micro-scratches', meta:'Key: α + angle + line/gap + blur/bg',
+   style:{'--scratch-alpha':'0.25','--scratch-angle':'115deg','--scratch-line':'1px','--scratch-gap':'7px','--scratch-blur':'10px','--scratch-sat':'115%','--scratch-bgA':'0.14'},
+   controls:[
+     {label:'Scratch α', code:'--scratch-alpha', varName:'--scratch-alpha', min:0, max:0.6, step:0.01, value:0.25},
+     {label:'Angle', code:'--scratch-angle', varName:'--scratch-angle', unit:'deg', min:0, max:180, step:1, value:115},
+     {label:'Line px', code:'--scratch-line', varName:'--scratch-line', unit:'px', min:1, max:3, step:1, value:1},
+     {label:'Gap px', code:'--scratch-gap', varName:'--scratch-gap', unit:'px', min:3, max:14, step:1, value:7},
+     {label:'Blur', code:'--scratch-blur', varName:'--scratch-blur', unit:'px', min:0, max:24, step:1, value:10},
+     {label:'Base α', code:'--scratch-bgA', varName:'--scratch-bgA', min:0, max:0.40, step:0.01, value:0.14},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
+   ]},
+
+  {cls:'glass-double', pill:'Double', title:'Double-Glass', meta:'Key: inner/outer px + α (visible default) + bg/blur',
+   style:{'--double-blur':'12px','--double-sat':'120%','--double-rim1':'0.45','--double-rim2':'0.15','--double-rim1Px':'2px','--double-rimPx':'12px','--double-bgA':'0.14','--outerA':'0.22'},
+   controls:[
+     {label:'Inner α', code:'--double-rim1', varName:'--double-rim1', min:0, max:0.8, step:0.01, value:0.45},
+     {label:'Outer α', code:'--double-rim2', varName:'--double-rim2', min:0, max:0.4, step:0.005, value:0.15},
+     {label:'Inner px', code:'--double-rim1Px', varName:'--double-rim1Px', unit:'px', min:0, max:6, step:1, value:2},
+     {label:'Outer px', code:'--double-rimPx', varName:'--double-rimPx', unit:'px', min:4, max:20, step:1, value:12},
+     {label:'BG α', code:'--double-bgA', varName:'--double-bgA', min:0, max:0.40, step:0.01, value:0.14},
+     {label:'Blur', code:'--double-blur', varName:'--double-blur', unit:'px', min:0, max:24, step:1, value:12},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.50, step:0.01, value:0.22},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+   ]},
+
+  {cls:'glass-duoprism', pill:'DuoPrism', title:'Duotone Prism Edge', meta:'Key: overlay bg α + rim A/B',
+   style:{'--duo-bgA':'0.14','--prism-a':'0.55','--prism-b':'0.55','--duo-blur':'12px','--duo-sat':'125%'},
+   controls:[
+     {label:'Overlay α', code:'--duo-bgA', varName:'--duo-bgA', min:0, max:0.40, step:0.01, value:0.14},
+     {label:'Rim A α', code:'--prism-a', varName:'--prism-a', min:0, max:1, step:0.01, value:0.55},
+     {label:'Rim B α', code:'--prism-b', varName:'--prism-b', min:0, max:1, step:0.01, value:0.55},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+   ]},
+
+  {cls:'glass-acrylic', pill:'Acrylic', title:'Acrylic (Fluent-like)', meta:'(Unchanged per request)',
+   style:{'--acrylic-bgA':'0.28','--acrylic-sat':'180%','--acrylic-blur':'20px','--acrylic-noiseA':'0.035'},
+   controls:[
+     {label:'BG α', code:'--acrylic-bgA', varName:'--acrylic-bgA', min:0, max:0.5, step:0.01, value:0.28},
+     {label:'Saturate', code:'--acrylic-sat', varName:'--acrylic-sat', unit:'%', min:80, max:300, step:1, value:180},
+     {label:'Blur', code:'--acrylic-blur', varName:'--acrylic-blur', unit:'px', min:0, max:40, step:1, value:20},
+     {label:'Noise α', code:'--acrylic-noiseA', varName:'--acrylic-noiseA', min:0, max:0.1, step:0.001, value:0.035},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+   ]},
+
+  {cls:'glass-paper', pill:'Paper', title:'Paper Noise', meta:'(Unchanged per request)',
+   style:{'--paper-bgA':'0.16','--paper-noiseA':'0.06','--paper-size':'2px','--paper-blur':'10px','--paper-sat':'115%'},
+   controls:[
+     {label:'BG α', code:'--paper-bgA', varName:'--paper-bgA', min:0, max:0.40, step:0.01, value:0.16},
+     {label:'Noise α', code:'--paper-noiseA', varName:'--paper-noiseA', min:0, max:0.2, step:0.005, value:0.06},
+     {label:'Noise px', code:'--paper-size', varName:'--paper-size', unit:'px', min:1, max:6, step:1, value:2},
+     {label:'Blur', code:'--paper-blur', varName:'--paper-blur', unit:'px', min:0, max:24, step:1, value:10},
+     {label:'Saturate', code:'--paper-sat', varName:'--paper-sat', unit:'%', min:80, max:240, step:1, value:115},
+     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+   ]},
+];
+
+/* ---------- DOM helpers ---------- */
+function el(tag, attrs={}, children=[]){
+  const n = document.createElement(tag);
+  for (const [k,v] of Object.entries(attrs)){
+    if (k==='class') n.className = v;
+    else if (k==='text') n.textContent = v;
+    else if (k==='html') n.innerHTML = v;
+    else n.setAttribute(k, v);
+  }
+  (Array.isArray(children)?children:[children]).forEach(c=>{ if(c) n.appendChild(c); });
+  return n;
+}
+
+function makeControl(ctrl, card, render){
+  const w = el('div', {class:'control'});
+  const label = el('label'); label.appendChild(document.createTextNode(ctrl.label+' '));
+  const code = el('code', {text: ctrl.code}); label.appendChild(code);
+  const input = el('input', {type:'range'});
+  input.min = ctrl.min; input.max = ctrl.max; input.step = ctrl.step; input.value = ctrl.value;
+  if (ctrl.varName) input.dataset.var = ctrl.varName;
+  if (ctrl.prop) input.dataset.prop = ctrl.prop;
+  if (ctrl.unit) input.dataset.unit = ctrl.unit;
+  if (ctrl.apply) input.dataset.apply = ctrl.apply;
+  const out = el('output', {text: String(ctrl.value) + (ctrl.unit||'')});
+  w.append(label); w.append(input); w.append(out);
+
+  const applyValue = (v)=>{
+    const unit = input.dataset.unit || '';
+    const s = unit ? (v + unit) : (''+v);
+    if (input.dataset.var) card.style.setProperty(input.dataset.var, s);
+    if (input.dataset.prop) card.style.setProperty(input.dataset.prop, s);
+    // NEW: don't clobber inset shadows; use CSS var for outer shadow
+    if (input.dataset.apply === 'outerA') card.style.setProperty('--outerA', v);
+    if (input.dataset.apply === 'border-alpha') card.style.borderColor = `rgba(255,255,255, ${v})`;
+    out.textContent = s;
+    render();
+  };
+  applyValue(input.value);
+  input.addEventListener('input', e => applyValue(e.target.value));
+  return w;
+}
+
+function makeCard(cfg){
+  const card = el('section', {class:`card ${cfg.cls}`});
+  for (const [k,v] of Object.entries(cfg.style||{})) card.style.setProperty(k, v);
+  card.append(
+    el('span', {class:'pill', text: cfg.pill}),
+    el('div', {class:'title', text: cfg.title}),
+    el('div', {class:'meta', text: cfg.meta}),
+  );
+  const controls = el('div', {class:'controls'});
+  const decls = el('div', {class:'decls'});
+  const pre = el('pre', {class:'decl-pre'});
+  decls.append(pre);
+  const actions = el('div', {class:'actions'});
+  const copyBtn = el('button', {class:'copy', text:'Copy Declarations'});
+  actions.append(copyBtn);
+
+  const render = ()=>{ pre.textContent = (builders[cfg.cls]||(()=>''))(card); };
+  (cfg.controls||[]).forEach(c => controls.append( makeControl(c, card, render) ));
+  render();
+  copyBtn.addEventListener('click', (e)=>{
+    const text = pre.textContent || '';
+    const ok = (msg)=>{ const t=e.target.textContent; e.target.textContent=msg||'Copied!'; setTimeout(()=>e.target.textContent=t,1200); };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(()=>ok()).catch(()=>fallback());
+    } else { fallback(); }
+    function fallback(){
+      const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta);
+      ta.focus(); ta.select(); try{ document.execCommand('copy'); }catch(_){}
+      document.body.removeChild(ta); ok();
+    }
+  });
+
+  card.append(controls, decls, actions);
+  return card;
+}
+
+const grid = document.getElementById('grid');
+CARDS.forEach(cfg => grid.append( makeCard(cfg) ));
+</script>
+</body>
+</html>
