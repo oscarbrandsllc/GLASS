@@ -9,7 +9,7 @@
   --font-sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   --color-text-primary:#EAEBF0; --color-text-secondary:#9096C0;
   --color-panel-bg: rgba(22,24,43,0.12); --color-panel-border: rgba(128,138,189,0.20);
-  --card-radius:18px;
+  --card-radius:10px;
 }
 html,body{height:100%;margin:0;background:#0b0b12;color:var(--color-text-primary);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;overflow-x:hidden}
 /* Backdrop reminder: needs translucency to take effect per MDN */
@@ -73,6 +73,10 @@ input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;bac
 .glass-bright{background-color:rgba(13,14,35,var(--bright-bgA,0.12));-webkit-backdrop-filter:blur(var(--bright-blur,12px)) brightness(var(--bright-bright,1.08)) saturate(var(--bright-sat,125%));backdrop-filter:blur(var(--bright-blur,12px)) brightness(var(--bright-bright,1.08)) saturate(var(--bright-sat,125%))}
 .glass-tint-purple{background-color:rgba(115,0,255,var(--tint-alpha,0.18));-webkit-backdrop-filter:blur(var(--tint-blur,12px)) saturate(var(--tint-sat,120%));backdrop-filter:blur(var(--tint-blur,12px)) saturate(var(--tint-sat,120%))}
 /* GLOSS */
+.glass-glossy{
+  -webkit-backdrop-filter:blur(var(--gloss-blur,12px)) saturate(var(--gloss-sat,120%));
+  backdrop-filter:blur(var(--gloss-blur,12px)) saturate(var(--gloss-sat,120%));
+}
 .glass-glossy::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(180deg, rgba(255,255,255,var(--gloss-alpha,0.18)), rgba(255,255,255,0) 35%)}
 /* TEXTURE */
 .glass-texture{background-image:repeating-linear-gradient(0deg, rgba(255,255,255,var(--texture-alpha,0.06)) 0 var(--texture-line,1px), transparent var(--texture-line,1px) var(--texture-gap,3px)),repeating-linear-gradient(90deg, rgba(255,255,255,var(--texture-alpha2,0.05)) 0 var(--texture-line,1px), transparent var(--texture-line,1px) var(--texture-gap,3px));-webkit-backdrop-filter:blur(var(--texture-blur,12px)) saturate(var(--texture-sat,120%));backdrop-filter:blur(var(--texture-blur,12px)) saturate(var(--texture-sat,120%))}
@@ -257,8 +261,12 @@ const builders = {
   },
 
   'glass-glossy': (card)=>{
-    const a = getVar(card,'--gloss-alpha','0.18');
+    const a   = getVar(card,'--gloss-alpha','0.18');
+    const blur= getVar(card,'--gloss-blur','12px');
+    const sat = getVar(card,'--gloss-sat','120%');
     const out = [];
+    emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
+    emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
     emit(out, `/* ::before */`);
     emit(out, `content: ""; position: absolute; inset: 0; pointer-events: none;`);
     emit(out, `background: linear-gradient(180deg, rgba(255,255,255, ${a}), rgba(255,255,255,0) 35%);`);
@@ -286,6 +294,9 @@ const builders = {
     const glowPx = getVar(card,'--neon-glowPx','10px');
     const aA  = getVar(card,'--neon-a','0.55');
     const aB  = getVar(card,'--neon-b','0.55');
+    const colA= getVar(card,'--neon-colA','#8A2BE2');
+    const colB= getVar(card,'--neon-colB','#00D4FF');
+    const inset = getVar(card,'--neon-glowInset','1px');
     const bgA = getVar(card,'--neon-bgA','0.16');
     const blur= getVar(card,'--neon-blur','12px');
     const sat = getVar(card,'--neon-sat','120%');
@@ -293,12 +304,12 @@ const builders = {
     emit(out, `border: 1px solid transparent;`);
     emit(out, `background:`);
     emit(out, `  linear-gradient(rgba(13,14,35, ${bgA}), rgba(13,14,35, ${bgA})) padding-box,`);
-    emit(out, `  linear-gradient(${ang}, var(--neon-colA,#8A2BE2), var(--neon-colB,#00D4FF)) border-box;`);
+    emit(out, `  linear-gradient(${ang}, ${colA}, ${colB}) border-box;`);
     emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
     emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
     emit(out, `/* ::after for glow rim */`);
-    emit(out, `content: ""; position: absolute; inset: 0; border-radius: inherit; padding: var(--neon-glowInset,1px);`);
-    emit(out, `background: linear-gradient(${ang}, var(--neon-colA,#8A2BE2), var(--neon-colB,#00D4FF));`);
+    emit(out, `content: ""; position: absolute; inset: 0; border-radius: inherit; padding: ${inset};`);
+    emit(out, `background: linear-gradient(${ang}, ${colA}, ${colB});`);
     emit(out, `-webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);`);
     emit(out, `-webkit-mask-composite: xor; mask-composite: exclude;`);
     emit(out, `filter: drop-shadow(0 0 ${glowPx} rgba(138,43,226, ${aA})) drop-shadow(0 0 ${glowPx} rgba(0,212,255, ${aB}));`);
@@ -311,6 +322,7 @@ const builders = {
     const da  = getVar(card,'--bevel-darkA','0.30');
     const blur= getVar(card,'--bevel-blur','12px');
     const sat = getVar(card,'--bevel-sat','118%');
+    const outA= getVar(card,'--outerA','0.22');
     const out = [];
     emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
     emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
@@ -319,7 +331,7 @@ const builders = {
     emit(out, `  inset 0 calc(-1 * ${px}) 0 rgba(0,0,0, ${da}),`);
     emit(out, `  inset ${px} 0 0 rgba(0,0,0, ${da}),`);
     emit(out, `  inset calc(-1 * ${px}) 0 0 rgba(255,255,255, ${la}),`);
-    emit(out, `  0 8px 24px rgba(0,0,0, var(--outerA, .22));`);
+    emit(out, `  0 8px 24px rgba(0,0,0, ${outA});`);
     addFrame(card, out); return block(out);
   },
 
@@ -370,11 +382,12 @@ const builders = {
     const blur= getVar(card,'--double-blur','12px');
     const sat = getVar(card,'--double-sat','120%');
     const bga = getVar(card,'--double-bgA','0.14');
+    const outA= getVar(card,'--outerA','0.22');
     const out = [];
     emit(out, `background-color: rgba(13, 14, 35, ${bga});`);
     emit(out, `-webkit-backdrop-filter: blur(${blur}) saturate(${sat});`);
     emit(out, `backdrop-filter: blur(${blur}) saturate(${sat});`);
-    emit(out, `box-shadow: inset 0 0 0 ${p1} rgba(255,255,255, ${r1}), inset 0 0 0 ${p2} rgba(255,255,255, ${r2}), 0 10px 26px rgba(0,0,0, var(--outerA, .22));`);
+    emit(out, `box-shadow: inset 0 0 0 ${p1} rgba(255,255,255, ${r1}), inset 0 0 0 ${p2} rgba(255,255,255, ${r2}), 0 10px 26px rgba(0,0,0, ${outA});`);
     addFrame(card, out); return block(out);
   },
 
@@ -433,7 +446,6 @@ const CARDS = [
      {label:'Blur', code:'--soft-blur', varName:'--soft-blur', unit:'px', min:0, max:40, step:1, value:6},
      {label:'Saturate', code:'--soft-sat', varName:'--soft-sat', unit:'%', min:80, max:220, step:1, value:110},
      {label:'Base α', code:'--soft-bgA', varName:'--soft-bgA', min:0, max:0.40, step:0.01, value:0.10},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
@@ -444,7 +456,6 @@ const CARDS = [
      {label:'Saturate', code:'--heavy-sat', varName:'--heavy-sat', unit:'%', min:100, max:240, step:1, value:130},
      {label:'Base α', code:'--heavy-bgA', varName:'--heavy-bgA', min:0.10, max:0.50, step:0.01, value:0.22},
      {label:'Frost (white) α', code:'--heavy-frost', varName:'--heavy-frost', min:0, max:0.40, step:0.01, value:0.08},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.50, step:0.01, value:0.22},
    ]},
 
@@ -453,8 +464,8 @@ const CARDS = [
    controls:[
      {label:'Blur', code:'--dim-blur', varName:'--dim-blur', unit:'px', min:0, max:30, step:1, value:14},
      {label:'Brightness', code:'--dim-bright', varName:'--dim-bright', min:0.60, max:1.20, step:0.01, value:0.90},
+     {label:'Saturate', code:'--dim-sat', varName:'--dim-sat', unit:'%', min:80, max:240, step:1, value:115},
      {label:'Base α', code:'--dim-bgA', varName:'--dim-bgA', min:0, max:0.50, step:0.01, value:0.26},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
@@ -463,8 +474,8 @@ const CARDS = [
    controls:[
      {label:'Blur', code:'--bright-blur', varName:'--bright-blur', unit:'px', min:0, max:30, step:1, value:12},
      {label:'Brightness', code:'--bright-bright', varName:'--bright-bright', min:1.0, max:1.6, step:0.01, value:1.08},
+     {label:'Saturate', code:'--bright-sat', varName:'--bright-sat', unit:'%', min:80, max:240, step:1, value:125},
      {label:'Base α', code:'--bright-bgA', varName:'--bright-bgA', min:0, max:0.30, step:0.01, value:0.12},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
@@ -473,15 +484,16 @@ const CARDS = [
    controls:[
      {label:'Tint α', code:'--tint-alpha', varName:'--tint-alpha', min:0, max:0.60, step:0.01, value:0.18},
      {label:'Blur', code:'--tint-blur', varName:'--tint-blur', unit:'px', min:0, max:24, step:1, value:12},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Saturate', code:'--tint-sat', varName:'--tint-sat', unit:'%', min:80, max:240, step:1, value:120},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
   {cls:'glass-glossy', pill:'Gloss', title:'Glossy Highlight', meta:'Key: top sheen α',
-   style:{'--gloss-alpha':'0.18'},
+   style:{'--gloss-alpha':'0.18','--gloss-blur':'12px','--gloss-sat':'120%'},
    controls:[
      {label:'Sheen α', code:'--gloss-alpha', varName:'--gloss-alpha', min:0, max:0.6, step:0.01, value:0.18},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Blur', code:'--gloss-blur', varName:'--gloss-blur', unit:'px', min:0, max:40, step:1, value:12},
+     {label:'Saturate', code:'--gloss-sat', varName:'--gloss-sat', unit:'%', min:80, max:240, step:1, value:120},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
@@ -489,10 +501,11 @@ const CARDS = [
    style:{'--texture-alpha':'0.06','--texture-alpha2':'0.05','--texture-line':'1px','--texture-gap':'3px','--texture-blur':'12px','--texture-sat':'120%'},
    controls:[
      {label:'Lines α', code:'--texture-alpha', varName:'--texture-alpha', min:0, max:0.2, step:0.005, value:0.06},
+     {label:'Lines2 α', code:'--texture-alpha2', varName:'--texture-alpha2', min:0, max:0.2, step:0.005, value:0.05},
      {label:'Line px', code:'--texture-line', varName:'--texture-line', unit:'px', min:1, max:4, step:1, value:1},
      {label:'Gap px', code:'--texture-gap', varName:'--texture-gap', unit:'px', min:2, max:10, step:1, value:3},
      {label:'Blur', code:'--texture-blur', varName:'--texture-blur', unit:'px', min:0, max:24, step:1, value:12},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Saturate', code:'--texture-sat', varName:'--texture-sat', unit:'%', min:80, max:240, step:1, value:120},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
@@ -504,7 +517,9 @@ const CARDS = [
      {label:'Glow A (A)', code:'--neon-a', varName:'--neon-a', min:0, max:1, step:0.01, value:0.55},
      {label:'Glow B (B)', code:'--neon-b', varName:'--neon-b', min:0, max:1, step:0.01, value:0.55},
      {label:'Blur', code:'--neon-blur', varName:'--neon-blur', unit:'px', min:0, max:24, step:1, value:12},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'BG α', code:'--neon-bgA', varName:'--neon-bgA', min:0, max:0.40, step:0.01, value:0.16},
+     {label:'Saturate', code:'--neon-sat', varName:'--neon-sat', unit:'%', min:80, max:240, step:1, value:120},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
   {cls:'glass-bevel', pill:'Bevel', title:'Inset Bevel (4-side)', meta:'Key: bevel px + light/dark α',
@@ -513,8 +528,9 @@ const CARDS = [
      {label:'Bevel px', code:'--bevel-px', varName:'--bevel-px', unit:'px', min:0, max:6, step:1, value:2},
      {label:'Light α', code:'--bevel-lightA', varName:'--bevel-lightA', min:0, max:0.8, step:0.01, value:0.35},
      {label:'Dark α', code:'--bevel-darkA', varName:'--bevel-darkA', min:0, max:0.8, step:0.01, value:0.30},
+     {label:'Blur', code:'--bevel-blur', varName:'--bevel-blur', unit:'px', min:0, max:24, step:1, value:12},
+     {label:'Saturate', code:'--bevel-sat', varName:'--bevel-sat', unit:'%', min:80, max:240, step:1, value:118},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.50, step:0.01, value:0.22},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
    ]},
 
   {cls:'glass-ringed', pill:'Rings', title:'Ringed Glass', meta:'Key: dot/gap px + center x/y + blur/bg',
@@ -527,7 +543,7 @@ const CARDS = [
      {label:'Center Y %', code:'--ringed-y', varName:'--ringed-y', unit:'%', min:0, max:100, step:1, value:40},
      {label:'Blur', code:'--ringed-blur', varName:'--ringed-blur', unit:'px', min:0, max:24, step:1, value:12},
      {label:'Base α', code:'--ringed-bgA', varName:'--ringed-bgA', min:0, max:0.40, step:0.01, value:0.16},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Saturate', code:'--ringed-sat', varName:'--ringed-sat', unit:'%', min:80, max:240, step:1, value:120},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
@@ -540,7 +556,7 @@ const CARDS = [
      {label:'Gap px', code:'--scratch-gap', varName:'--scratch-gap', unit:'px', min:3, max:14, step:1, value:7},
      {label:'Blur', code:'--scratch-blur', varName:'--scratch-blur', unit:'px', min:0, max:24, step:1, value:10},
      {label:'Base α', code:'--scratch-bgA', varName:'--scratch-bgA', min:0, max:0.40, step:0.01, value:0.14},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Saturate', code:'--scratch-sat', varName:'--scratch-sat', unit:'%', min:80, max:240, step:1, value:115},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
@@ -553,8 +569,8 @@ const CARDS = [
      {label:'Outer px', code:'--double-rimPx', varName:'--double-rimPx', unit:'px', min:4, max:20, step:1, value:12},
      {label:'BG α', code:'--double-bgA', varName:'--double-bgA', min:0, max:0.40, step:0.01, value:0.14},
      {label:'Blur', code:'--double-blur', varName:'--double-blur', unit:'px', min:0, max:24, step:1, value:12},
+     {label:'Saturate', code:'--double-sat', varName:'--double-sat', unit:'%', min:80, max:240, step:1, value:120},
      {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.50, step:0.01, value:0.22},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
    ]},
 
   {cls:'glass-duoprism', pill:'DuoPrism', title:'Duotone Prism Edge', meta:'Key: overlay bg α + rim A/B',
@@ -563,7 +579,9 @@ const CARDS = [
      {label:'Overlay α', code:'--duo-bgA', varName:'--duo-bgA', min:0, max:0.40, step:0.01, value:0.14},
      {label:'Rim A α', code:'--prism-a', varName:'--prism-a', min:0, max:1, step:0.01, value:0.55},
      {label:'Rim B α', code:'--prism-b', varName:'--prism-b', min:0, max:1, step:0.01, value:0.55},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Blur', code:'--duo-blur', varName:'--duo-blur', unit:'px', min:0, max:24, step:1, value:12},
+     {label:'Saturate', code:'--duo-sat', varName:'--duo-sat', unit:'%', min:80, max:240, step:1, value:125},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
   {cls:'glass-acrylic', pill:'Acrylic', title:'Acrylic (Fluent-like)', meta:'(Unchanged per request)',
@@ -573,7 +591,7 @@ const CARDS = [
      {label:'Saturate', code:'--acrylic-sat', varName:'--acrylic-sat', unit:'%', min:80, max:300, step:1, value:180},
      {label:'Blur', code:'--acrylic-blur', varName:'--acrylic-blur', unit:'px', min:0, max:40, step:1, value:20},
      {label:'Noise α', code:'--acrylic-noiseA', varName:'--acrylic-noiseA', min:0, max:0.1, step:0.001, value:0.035},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 
   {cls:'glass-paper', pill:'Paper', title:'Paper Noise', meta:'(Unchanged per request)',
@@ -584,7 +602,7 @@ const CARDS = [
      {label:'Noise px', code:'--paper-size', varName:'--paper-size', unit:'px', min:1, max:6, step:1, value:2},
      {label:'Blur', code:'--paper-blur', varName:'--paper-blur', unit:'px', min:0, max:24, step:1, value:10},
      {label:'Saturate', code:'--paper-sat', varName:'--paper-sat', unit:'%', min:80, max:240, step:1, value:115},
-     {label:'Radius', code:'border-radius', prop:'border-radius', unit:'px', min:8, max:28, step:1, value:18},
+     {label:'Outer shadow α', code:'outer shadow', apply:'outerA', min:0, max:0.40, step:0.01, value:0.22},
    ]},
 ];
 
